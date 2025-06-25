@@ -64,7 +64,8 @@ class PrizePicksBot(commands.Bot):
         patterns = [
             r'https?://app\.prizepicks\.com/[^\s]+',
             r'https?://prizepicks\.com/[^\s]+',
-            r'https?://.*prizepicks.*[^\s]+'
+            r'https?://.*prizepicks.*[^\s]+',
+            r'https?://prizepicks\\.onelink\\.me/[^\\s]+'
         ]
         
         links = []

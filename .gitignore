@@ -13,6 +13,9 @@ screenshots/*.jpeg
 # Logs
 logs/*.log
 
+# Scraped messages
+scraped/*.json
+
 # Python
 __pycache__/
 *.py[cod]

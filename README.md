@@ -5,6 +5,7 @@ An automated system that monitors a Discord server for PrizePicks links and auto
 ## Features
 
 - 🤖 **Discord Bot Integration** - Monitors specified Discord channel for PrizePicks links
+- 🔍 **Discord Scraper** - Scrapes and analyzes Discord messages for PrizePicks links
 - 🌐 **Web Automation** - Handles PrizePicks website login and navigation
 - ⚡ **Automatic Submission** - Submits slips with configurable delays
 - ✅ **Verification System** - Screenshots and success indicators for verification
@@ -114,39 +115,71 @@ The bot will:
 - `!status` - Check bot status
 - `!manual <link>` - Manually submit a PrizePicks link
 
+### Discord Scraper
+
+The scraper allows you to analyze Discord messages and extract PrizePicks links:
+
+```bash
+# Start the Discord scraper
+python run.py scraper
+
+# Test scraper functionality
+python run.py test-scraper
+```
+
+#### Scraper Commands (use in Discord)
+
+- `!scrape <number>` - Scrape messages from current channel
+- `!scrape_target <number>` - Scrape from configured target channel
+- `!links <number>` - Find PrizePicks links in recent messages
+- `!status` - Check scraper status and configuration
+
+#### Scraper Features
+
+- **Message Analysis** - Scrapes messages and saves to JSON files
+- **Link Extraction** - Automatically finds PrizePicks links in messages
+- **Metadata Capture** - Saves author, timestamp, and message details
+- **File Organization** - Saves scraped data in organized JSON files
+
 ## Step-by-Step Implementation Plan
 
 ### Phase 1: Foundation & Manual Testing ✅
 1. ✅ Set up project structure with dependencies
 2. ✅ Create basic web automation for PrizePicks
 3. ✅ Build manual testing framework
-4. 🔄 **Next: Test PrizePicks workflow manually**
+4. ✅ Create Discord scraper for analysis
+5. 🔄 **Next: Test PrizePicks workflow manually**
 
 ### Phase 2: Core Automation
-5. Test Discord bot with sample links
-6. Refine web automation based on testing
-7. Implement robust error handling
-8. Add verification strategies
+6. Test Discord bot with sample links
+7. Refine web automation based on testing
+8. Implement robust error handling
+9. Add verification strategies
 
 ### Phase 3: Production & Deployment
-9. Add scheduling system for 8am/2pm PST
-10. Deploy to cloud/server
-11. Add monitoring and logging
+10. Add scheduling system for 8am/2pm PST
+11. Deploy to cloud/server
+12. Add monitoring and logging
 
 ## Current Status
 
-**Ready for Phase 1, Step 4**: Manual testing of PrizePicks workflow
+**Ready for Phase 1, Step 5**: Manual testing of PrizePicks workflow
 
 ### Next Steps:
 
 1. **Set up your `.env` file** with Discord and PrizePicks credentials
-2. **Run manual testing**:
+2. **Test the scraper**:
    ```bash
-   python manual_test.py
+   python run.py test-scraper
    ```
-3. **Test login functionality** first
-4. **Test with a real PrizePicks link** to understand the workflow
-5. **Refine selectors** in `prizepicks_automation.py` based on actual website structure
+3. **Run the scraper** to analyze your Discord channel:
+   ```bash
+   python run.py scraper
+   ```
+4. **Test PrizePicks automation**:
+   ```bash
+   python run.py test
+   ```
 
 ## File Structure
 
@@ -155,11 +188,15 @@ auto-gambler/
 ├── config.py              # Configuration settings
 ├── prizepicks_automation.py  # Web automation logic
 ├── discord_bot.py         # Discord bot implementation
+├── discord_scraper.py     # Discord message scraper
 ├── manual_test.py         # Manual testing framework
+├── test_scraper.py        # Scraper testing framework
 ├── requirements.txt       # Python dependencies
 ├── env_example.txt        # Environment variables template
+├── run.py                 # Main launcher script
 ├── screenshots/           # Screenshots for verification
 ├── logs/                  # Application logs
+├── scraped/               # Scraped Discord messages
 └── README.md             # This file
 ```
 
@@ -183,6 +220,10 @@ auto-gambler/
    - PrizePicks may have updated their website
    - Update selectors in `prizepicks_automation.py`
 
+5. **Scraper Permission Issues**
+   - Ensure bot has "Read Message History" permission
+   - Check if bot is in the target server and channel
+
 ### Debug Mode
 
 Enable detailed logging by setting in `config.py`:
@@ -196,6 +237,7 @@ LOG_LEVEL = "DEBUG"
 - Use environment variables for sensitive data
 - Consider using a dedicated Discord bot account
 - Be aware of PrizePicks terms of service regarding automation
+- Respect Discord's rate limits and terms of service
 
 ## Legal Disclaimer
 
