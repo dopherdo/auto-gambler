@@ -1,0 +1,8 @@
+# Discord Configuration
+DISCORD_TOKEN=your_discord_bot_token_here
+DISCORD_SERVER_ID=your_discord_server_id_here
+DISCORD_CHANNEL_ID=your_discord_channel_id_here
+
+# PrizePicks Configuration
+PRIZEPICKS_EMAIL=your_prizepicks_email@example.com
+PRIZEPICKS_PASSWORD=your_prizepicks_password_here 
