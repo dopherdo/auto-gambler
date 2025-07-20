@@ -1,10 +1,6 @@
-selenium==4.15.2
-discord.py==2.3.2
-python-dotenv==1.0.0
-schedule==1.2.0
-requests==2.31.0
-beautifulsoup4==4.12.2
-pillow==10.1.0
-webdriver-manager==4.0.1
-python-dateutil==2.8.2
-pytz==2023.3 
+discord.py-self==2.0.1
+python-dotenv==1.1.1
+selenium==4.33.0
+termcolor==3.1.0
+undetected_chromedriver==3.5.5
+webdriver_manager==4.0.2
