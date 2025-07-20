@@ -51,10 +51,25 @@ class DiscordScraper(commands.Bot):
         
         super().__init__(command_prefix='!', intents=intents)
         self.scraped_messages = []
+        self.bet_processor = None
         
     async def setup_hook(self):
         """Set up bot when it starts."""
         logger.info("Setting up Discord scraper...")
+        
+        # Initialize bet processor if auto-place is enabled
+        if config.AUTO_PLACE_BETS:
+            try:
+                from bet_processor import BetProcessor
+                self.bet_processor = BetProcessor(headless=True, auto_place_bets=True)
+                if not self.bet_processor.initialize_automation():
+                    logger.warning("Failed to initialize bet processor - auto-placing will be disabled")
+                    self.bet_processor = None
+                else:
+                    logger.info("Bet processor initialized successfully")
+            except Exception as e:
+                logger.error(f"Error initializing bet processor: {e}")
+                self.bet_processor = None
         
     async def on_ready(self):
         """Called when bot is ready."""
@@ -140,6 +155,35 @@ class DiscordScraper(commands.Bot):
         
         return links
     
+    async def process_links_automatically(self, links):
+        """Automatically process links and place bets if enabled."""
+        if not self.bet_processor or not config.AUTO_PLACE_BETS:
+            logger.info("Auto-place bets is disabled or bet processor not available")
+            return
+        
+        try:
+            logger.info(f"Processing {len(links)} links automatically...")
+            
+            # Process each link
+            for i, link_data in enumerate(links, 1):
+                logger.info(f"Processing link {i}/{len(links)}: {link_data['link']}")
+                
+                result = self.bet_processor.place_bet(link_data, config.DEFAULT_UNIT_SIZE)
+                
+                if result['success']:
+                    logger.info(f"Successfully placed bet for link {i}")
+                else:
+                    logger.error(f"Failed to place bet for link {i}: {result.get('error', 'Unknown error')}")
+                
+                # Add delay between bets
+                if i < len(links):
+                    await asyncio.sleep(2)
+            
+            logger.info("Automatic link processing completed")
+            
+        except Exception as e:
+            logger.error(f"Error in automatic link processing: {e}")
+    
     @commands.command(name='scrape')
     async def scrape_command(self, ctx, limit: int = 100):
         """Scrape messages from the current channel."""
@@ -163,6 +207,11 @@ class DiscordScraper(commands.Bot):
                             await ctx.send(f"  • {link_data['link']} (by {link_data['author']})")
                         if len(prizepicks_links) > 5:
                             await ctx.send(f"  ... and {len(prizepicks_links) - 5} more")
+                        
+                        # Process links automatically if enabled
+                        if config.AUTO_PLACE_BETS:
+                            await ctx.send("🤖 Auto-placing bets from scraped links...")
+                            await self.process_links_automatically(prizepicks_links)
                 else:
                     await ctx.send("❌ Failed to save messages")
             else:
@@ -197,6 +246,11 @@ class DiscordScraper(commands.Bot):
                         await ctx.send(f"🎯 Found {len(prizepicks_links)} PrizePicks links in target channel!")
                         for link_data in prizepicks_links:
                             await ctx.send(f"  • {link_data['link']} (by {link_data['author']} at {link_data['timestamp']})")
+                        
+                        # Process links automatically if enabled
+                        if config.AUTO_PLACE_BETS:
+                            await ctx.send("🤖 Auto-placing bets from scraped links...")
+                            await self.process_links_automatically(prizepicks_links)
                 else:
                     await ctx.send("❌ Failed to save messages")
             else:
@@ -232,6 +286,37 @@ class DiscordScraper(commands.Bot):
             logger.error(f"Error in links command: {e}")
             await ctx.send(f"❌ Error: {str(e)}")
     
+    @commands.command(name='place_bet')
+    async def place_bet_command(self, ctx, link: str, unit_size: int = None):
+        """Manually place a bet from a PrizePicks link."""
+        try:
+            if not self.bet_processor:
+                await ctx.send("❌ Bet processor not available. Please check configuration.")
+                return
+            
+            if unit_size is None:
+                unit_size = config.DEFAULT_UNIT_SIZE
+            
+            await ctx.send(f"🎯 Placing bet for link with unit size {unit_size}...")
+            
+            link_data = {
+                'link': link,
+                'message_id': str(ctx.message.id),
+                'author': ctx.author.display_name,
+                'timestamp': ctx.message.created_at.isoformat()
+            }
+            
+            result = self.bet_processor.place_bet(link_data, unit_size)
+            
+            if result['success']:
+                await ctx.send(f"✅ Bet placed successfully! Unit size: {unit_size}")
+            else:
+                await ctx.send(f"❌ Failed to place bet: {result.get('error', 'Unknown error')}")
+                
+        except Exception as e:
+            logger.error(f"Error in place_bet command: {e}")
+            await ctx.send(f"❌ Error: {str(e)}")
+    
     @commands.command(name='status')
     async def status_command(self, ctx):
         """Check scraper status and configuration."""
@@ -243,6 +328,9 @@ class DiscordScraper(commands.Bot):
         status_msg += f"• Target Server: {target_guild.name if target_guild else 'Not found'}\n"
         status_msg += f"• Target Channel: #{target_channel.name if target_channel else 'Not found'}\n"
         status_msg += f"• Current Channel: #{ctx.channel.name}\n"
+        status_msg += f"• Auto-place bets: {'✅ Enabled' if config.AUTO_PLACE_BETS else '❌ Disabled'}\n"
+        status_msg += f"• Bet processor: {'✅ Available' if self.bet_processor else '❌ Not available'}\n"
+        status_msg += f"• Default unit size: {config.DEFAULT_UNIT_SIZE}\n"
         
         await ctx.send(status_msg)
 
@@ -281,7 +369,9 @@ class DiscordScraper(commands.Bot):
                     new_links.append(link_data)
             if new_links:
                 logger.info(f"New unique links found: {[l['link'] for l in new_links]}")
-                # Optionally, save or process new_links here
+                # Process new links automatically if enabled
+                if config.AUTO_PLACE_BETS and self.bet_processor:
+                    await self.process_links_automatically(new_links)
             await asyncio.sleep(3)
         logger.info("Scheduled scraping loop finished.")
 
@@ -307,7 +397,9 @@ class DiscordScraper(commands.Bot):
                     new_links.append(link_data)
             if new_links:
                 logger.info(f"New unique links found: {[l['link'] for l in new_links]}")
-                # Optionally, save or process new_links here
+                # Process new links automatically if enabled
+                if config.AUTO_PLACE_BETS and self.bet_processor:
+                    await self.process_links_automatically(new_links)
             await asyncio.sleep(3)
         logger.info("Immediate scraping loop finished.")
 
