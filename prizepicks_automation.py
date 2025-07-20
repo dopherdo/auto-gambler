@@ -171,6 +171,134 @@ class PrizePicksAutomation:
             logger.error(f"Error navigating to link: {e}")
             return False
     
+    def set_unit_size(self, unit_size):
+        """Set the unit size for the current slip."""
+        try:
+            logger.info(f"Setting unit size to: {unit_size}")
+            
+            # Look for unit size input field with various possible selectors
+            unit_selectors = [
+                "input[data-testid='unit-size']",
+                "input[name='unitSize']",
+                "input[placeholder*='unit']",
+                "input[placeholder*='Unit']",
+                ".unit-size-input input",
+                "[data-testid='unit-input'] input",
+                "input[type='number']"
+            ]
+            
+            unit_input = None
+            for selector in unit_selectors:
+                try:
+                    unit_input = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if unit_input.is_displayed() and unit_input.is_enabled():
+                        break
+                except NoSuchElementException:
+                    continue
+            
+            if not unit_input:
+                logger.error("Unit size input field not found")
+                return False
+            
+            # Clear existing value and set new unit size
+            unit_input.clear()
+            unit_input.send_keys(str(unit_size))
+            
+            # Wait a moment for the value to be processed
+            time.sleep(1)
+            
+            # Verify the unit size was set correctly
+            actual_value = unit_input.get_attribute('value')
+            if str(unit_size) in actual_value:
+                logger.info(f"Unit size set successfully to {actual_value}")
+                return True
+            else:
+                logger.warning(f"Unit size may not have been set correctly. Expected: {unit_size}, Got: {actual_value}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error setting unit size: {e}")
+            return False
+    
+    def verify_slip_details(self):
+        """Verify that the slip has the expected details and is ready for submission."""
+        try:
+            # Check for common slip elements
+            slip_elements = [
+                ".slip-builder",
+                "[data-testid='slip-builder']",
+                ".bet-slip",
+                ".slip-container"
+            ]
+            
+            slip_found = False
+            for element in slip_elements:
+                try:
+                    slip_element = self.driver.find_element(By.CSS_SELECTOR, element)
+                    if slip_element.is_displayed():
+                        slip_found = True
+                        logger.info("Slip builder found and visible")
+                        break
+                except NoSuchElementException:
+                    continue
+            
+            if not slip_found:
+                logger.error("Slip builder not found")
+                return False
+            
+            # Check if there are any picks in the slip
+            pick_selectors = [
+                ".pick-item",
+                "[data-testid='pick-item']",
+                ".slip-pick",
+                ".bet-item"
+            ]
+            
+            picks_found = False
+            for selector in pick_selectors:
+                try:
+                    picks = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    if picks:
+                        picks_found = True
+                        logger.info(f"Found {len(picks)} picks in slip")
+                        break
+                except:
+                    continue
+            
+            if not picks_found:
+                logger.warning("No picks found in slip")
+                return False
+            
+            # Check if submit button is available
+            submit_selectors = [
+                "button[data-testid='submit-slip']",
+                ".submit-slip-button",
+                "[data-testid='submit-button']",
+                ".submit-button",
+                "button[type='submit']"
+            ]
+            
+            submit_available = False
+            for selector in submit_selectors:
+                try:
+                    submit_button = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if submit_button.is_displayed() and submit_button.is_enabled():
+                        submit_available = True
+                        logger.info("Submit button found and enabled")
+                        break
+                except NoSuchElementException:
+                    continue
+            
+            if not submit_available:
+                logger.warning("Submit button not found or not enabled")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error verifying slip details: {e}")
+            return False
+    
     def submit_slip(self):
         """Submit the current slip with verification."""
         try:
@@ -261,6 +389,38 @@ class PrizePicksAutomation:
             
         except Exception as e:
             logger.error(f"Error during submission verification: {e}")
+            return False
+    
+    def place_bet_from_link(self, link, unit_size=1):
+        """Complete workflow to place a bet from a PrizePicks link."""
+        try:
+            logger.info(f"Starting bet placement workflow for link: {link}")
+            
+            # Step 1: Navigate to the link
+            if not self.navigate_to_link(link):
+                logger.error("Failed to navigate to link")
+                return False
+            
+            # Step 2: Verify slip details
+            if not self.verify_slip_details():
+                logger.error("Slip details verification failed")
+                return False
+            
+            # Step 3: Set unit size
+            if not self.set_unit_size(unit_size):
+                logger.error("Failed to set unit size")
+                return False
+            
+            # Step 4: Submit the slip
+            if not self.submit_slip():
+                logger.error("Failed to submit slip")
+                return False
+            
+            logger.info("Bet placement workflow completed successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error in bet placement workflow: {e}")
             return False
     
     def take_screenshot(self, name):

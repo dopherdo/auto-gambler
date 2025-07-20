@@ -14,6 +14,11 @@ PRIZEPICKS_LOGIN_URL = "https://app.prizepicks.com/login"
 PRIZEPICKS_EMAIL = os.getenv('PRIZEPICKS_EMAIL')
 PRIZEPICKS_PASSWORD = os.getenv('PRIZEPICKS_PASSWORD')
 
+# Bet Placement Configuration
+DEFAULT_UNIT_SIZE = int(os.getenv('DEFAULT_UNIT_SIZE', '1'))
+MAX_UNIT_SIZE = int(os.getenv('MAX_UNIT_SIZE', '10'))
+AUTO_PLACE_BETS = os.getenv('AUTO_PLACE_BETS', 'false').lower() == 'true'
+
 # Automation Settings
 SUBMISSION_DELAY = 1  # seconds
 PAGE_LOAD_TIMEOUT = 30  # seconds
