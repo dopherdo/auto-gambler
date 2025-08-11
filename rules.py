@@ -2,9 +2,8 @@
 Discord Validation Rules for Auto-Gambler Bot
 
 This module contains validation functions and configuration for:
-- Acceptable Discord channels and guilds to monitor
+- Acceptable Discord channels and servers to monitor
 - PrizePicks link validation
-- Role-based access control
 
 ⚠️ IMPORTANT: Update these IDs with your specific Discord server information
 """
@@ -16,15 +15,12 @@ from dataclasses import dataclass
 
 # List of Discord channel IDs to monitor for PrizePicks links
 # Get channel ID by right-clicking channel and "Copy ID" (Developer Mode must be enabled)
-ACCEPTABLE_CHANNELS = [1387259344508293180]
+ACCEPTABLE_CHANNELS = [1171620108301520956]
 
-# List of Discord guild/server IDs to monitor
-# Get guild ID by right-clicking server name and "Copy ID" (Developer Mode must be enabled)
-ACCEPTABLE_GUILDS = [1387259315236372611]
+# List of Discord server IDs to monitor
+# Get server ID by right-clicking server name and "Copy ID" (Developer Mode must be enabled)
+ACCEPTABLE_SERVERS = [1171551737803440239]
 
-# List of role mentions required in messages for validation
-# Format: "@&ROLE_ID" - Get role ID by right-clicking role and "Copy ID"
-ACCEPTABLE_ROLES = ["@&1341949739259658242"]
 
 
 @dataclass
@@ -46,9 +42,8 @@ def valid_prizepick(string):
     """
     Validate if a message contains valid PrizePicks content.
     
-    This function checks if the message contains:
-    1. Required role mentions (for access control)
-    2. Valid PrizePicks share links
+    This function checks if the message contains valid PrizePicks share links.
+    Supports both plain URLs and Markdown formatted links [text](URL).
     
     Args:
         string (str): Discord message content to validate
@@ -56,31 +51,27 @@ def valid_prizepick(string):
     Returns:
         bool: True if message contains valid PrizePicks content, False otherwise
     """
-    return any((
-        # Check for required role mentions (access control)
-        *[tag in string for tag in ACCEPTABLE_ROLES],
-        # Check for valid PrizePicks share link pattern
-        "https://prizepicks.onelink.me/gCQS/shareEntry?entryId=" in string,
-    ))
+    # Check for valid PrizePicks share link pattern (supports Markdown and plain URLs)
+    return "https://prizepicks.onelink.me/gCQS/shareEntry?entryId=" in string
 
 
-def valid_channel_and_guild(message):
+def valid_channel_and_server(message):
     """
-    Validate if a message is from an acceptable channel and guild.
+    Validate if a message is from an acceptable channel and server.
     
     This function ensures the bot only processes messages from:
     1. Configured Discord channels (ACCEPTABLE_CHANNELS)
-    2. Configured Discord guilds/servers (ACCEPTABLE_GUILDS)
+    2. Configured Discord servers (ACCEPTABLE_SERVERS)
     
     Args:
         message: Discord message object to validate
         
     Returns:
-        bool: True if message is from acceptable channel/guild, False otherwise
+        bool: True if message is from acceptable channel/server, False otherwise
     """
     return all((
         # Check if message channel is in acceptable channels list
         message.channel.id in ACCEPTABLE_CHANNELS,
-        # Check if message guild is in acceptable guilds list
-        message.guild.id in ACCEPTABLE_GUILDS
+        # Check if message servers is in acceptable servers list
+        message.servers.id in ACCEPTABLE_SERVERS
     ))

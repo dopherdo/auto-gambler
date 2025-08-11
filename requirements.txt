@@ -4,3 +4,4 @@ selenium==4.33.0
 termcolor==3.1.0
 undetected_chromedriver==3.5.5
 webdriver_manager==4.0.2
+pytz==2023.3

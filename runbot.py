@@ -17,7 +17,7 @@ Key Features:
 import discord
 from discord.message import Message
 
-from rules import valid_prizepick, valid_channel_and_guild
+from rules import valid_prizepick, valid_channel_and_server
 from ui import pp_message, pp_history
 
 from enum import Enum
@@ -25,6 +25,8 @@ from dataclasses import dataclass
 import os
 import time
 import random
+from datetime import datetime
+import pytz
 
 # Anti-detection browser automation
 import undetected_chromedriver as uc
@@ -41,6 +43,36 @@ from webdriver_manager.chrome import ChromeDriverManager
 # Initialize undetected Chrome driver (anti-detection)
 # Version 138 is configured for current Chrome version
 driver = uc.Chrome(version_main=138)
+
+def is_active_hours():
+    """
+    Check if the bot should be active based on PST time.
+    
+    Bot is active from 7:30 AM to 9:00 PM PST.
+    Bot is inactive from 9:00 PM to 7:30 AM PST.
+    
+    Returns:
+        bool: True if bot should be active, False if it should sleep
+    """
+    # Get current PST time
+    pst = pytz.timezone('US/Pacific')
+    current_time = datetime.now(pst)
+    current_hour = current_time.hour
+    current_minute = current_time.minute
+    
+    # Convert current time to minutes since midnight for easier comparison
+    current_minutes = current_hour * 60 + current_minute
+    
+    # Active hours: 7:30 AM (450 minutes) to 9:00 PM (1260 minutes)
+    start_time = 7 * 60 + 30  # 7:30 AM = 450 minutes
+    end_time = 21 * 60        # 9:00 PM = 1260 minutes
+    
+    is_active = start_time <= current_minutes < end_time
+    
+    if not is_active:
+        print(f"🌙 Bot is sleeping (inactive hours): {current_time.strftime('%I:%M %p PST')} - Active from 7:30 AM to 9:00 PM PST")
+    
+    return is_active
 
 def human_delay():
     """
@@ -70,15 +102,40 @@ def place_prizepick_slip(url):
     """
     try:
         print(f"Opening PrizePick link: {url}")
-        driver.get(url)
+        
+        # Set shorter page load timeout for expired links
+        driver.set_page_load_timeout(10)
+        
+        try:
+            driver.get(url)
+        except Exception as e:
+            print(f"❌ Failed to load page (likely expired/invalid link): {e}")
+            return False
         
         # Wait for page to load with human-like delay
         human_delay()
         
+        # Check if we're on an error page or invalid link
+        current_url = driver.current_url
+        page_title = driver.title.lower()
+        
+        # Check for common error indicators
+        if any(error_term in page_title for error_term in ["error", "not found", "expired", "invalid"]):
+            print(f"❌ Invalid or expired link detected - Page title: {driver.title}")
+            return False
+        
+        if "error" in current_url.lower() or current_url == "about:blank":
+            print(f"❌ Invalid link or error page detected - URL: {current_url}")
+            return False
+        
         # Wait for the page to be fully loaded (body element present)
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.TAG_NAME, "body"))
-        )
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+        except TimeoutException:
+            print("❌ Page failed to load properly (timeout)")
+            return False
         
         print("Page loaded, looking for place entry button...")
         human_delay()
@@ -160,7 +217,14 @@ def place_prizepick_slip(url):
         print("❌ Timeout waiting for page to load")
         return False
     except Exception as e:
-        print(f"❌ Error placing slip: {str(e)}")
+        # Handle specific connection errors
+        error_str = str(e)
+        if "Connection aborted" in error_str or "RemoteDisconnected" in error_str:
+            print(f"❌ Connection error (likely expired/invalid link): {error_str}")
+        elif "TimeoutException" in error_str:
+            print(f"❌ Page load timeout (likely slow/invalid link): {error_str}")
+        else:
+            print(f"❌ Unexpected error placing slip: {error_str}")
         return False
 
 
@@ -192,9 +256,20 @@ async def on_ready():
     """
     Called when the Discord bot successfully connects.
     
-    Logs the bot's user information for verification.
+    Logs the bot's user information and current time status.
     """
+    # Get current PST time
+    pst = pytz.timezone('US/Pacific')
+    current_time = datetime.now(pst)
+    
     print("Logged in as", client.user)
+    print(f"🕐 Current PST time: {current_time.strftime('%I:%M %p PST on %B %d, %Y')}")
+    print(f"⏰ Bot active hours: 7:30 AM - 9:00 PM PST")
+    
+    if is_active_hours():
+        print("✅ Bot is currently ACTIVE and will process PrizePicks links")
+    else:
+        print("🌙 Bot is currently SLEEPING (outside active hours)")
 
 
 @client.event
@@ -204,7 +279,7 @@ async def on_message(message: Message):
     
     This function:
     1. Validates the message is from a text channel
-    2. Checks if it's from an acceptable guild/channel
+    2. Checks if it's from an acceptable server/channel
     3. Validates it contains a valid PrizePicks link
     4. Extracts the URL and processes the slip
     5. Provides visual feedback via reactions
@@ -216,22 +291,26 @@ async def on_message(message: Message):
     if not isinstance(message.channel, discord.TextChannel):
         return
 
-    # Validate guild and channel permissions
-    if not valid_channel_and_guild(message):
-        print("Not valid guild and channel:", message.channel.id)
-        return
+    # Early check: Only process messages from our target channels (reduce API calls)
+    from rules import ACCEPTABLE_CHANNELS, ACCEPTABLE_SERVERS
+    if message.channel.id not in ACCEPTABLE_CHANNELS or message.server.id not in ACCEPTABLE_SERVERS:
+        return  # Silently ignore messages from unwanted channels/servers
+
+    # Check if bot should be active based on time (7:30 AM - 9:00 PM PST)
+    if not is_active_hours():
+        return  # Silently ignore messages during inactive hours
 
     # Validate message contains valid PrizePicks content
     if not valid_prizepick(message.content):
-        print("Not valid prizepick:", message.content)
-        return
+        return  # Silently ignore non-PrizePicks messages
 
     # Add initial reaction to show bot is processing
-    await message.add_reaction("🌭")
+    # await message.add_reaction("🌭")
     
     # Extract PrizePicks URL using regex pattern matching
     import re
-    url_match = re.search(r'https://prizepicks\.onelink\.me/gCQS/shareEntry\?entryId=[^\s]+', message.content)
+    # Updated pattern to handle Markdown links [text](URL) and plain URLs
+    url_match = re.search(r'https://prizepicks\.onelink\.me/gCQS/shareEntry\?entryId=[^\s\)]+', message.content)
     if url_match:
         url = url_match.group(0)
         print(f"Processing PrizePick link: {url}")
@@ -240,10 +319,8 @@ async def on_message(message: Message):
         success = place_prizepick_slip(url)
         
         if success:
-            await message.add_reaction("✅")
             print(f"Successfully processed slip from {message.author}")
         else:
-            await message.add_reaction("❌")
             print(f"Failed to process slip from {message.author}")
     else:
         print("No valid PrizePick URL found in message")

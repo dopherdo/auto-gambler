@@ -66,18 +66,15 @@ Edit `rules.py` with your Discord server information:
 # Channel ID to monitor
 ACCEPTABLE_CHANNELS = [YOUR_CHANNEL_ID]
 
-# Server/Guild ID to monitor  
-ACCEPTABLE_GUILDS = [YOUR_GUILD_ID]
+# Server ID to monitor  
+ACCEPTABLE_SERVERSS = [YOUR_SERVER_ID]
 
-# Role mention required in messages (optional)
-ACCEPTABLE_ROLES = ["@&YOUR_ROLE_ID"]
 ```
 
 #### How to Get IDs:
 
 1. **Channel ID**: Right-click the channel → "Copy ID"
-2. **Guild ID**: Right-click the server name → "Copy ID"
-3. **Role ID**: Right-click the role → "Copy ID"
+2. **Server ID**: Right-click the server name → "Copy ID"
 
 ### Step 5: Configure Chrome Version
 
@@ -115,8 +112,7 @@ Logged in as YourAltAccount#1234
 In `rules.py`, you can customize:
 
 - **Multiple Channels**: Add more channel IDs to `ACCEPTABLE_CHANNELS`
-- **Multiple Servers**: Add more guild IDs to `ACCEPTABLE_GUILDS`
-- **Role Requirements**: Add role mentions to `ACCEPTABLE_ROLES`
+- **Multiple Servers**: Add more server IDs to `ACCEPTABLE_SERVERS`
 
 ### Browser Automation Settings
 
@@ -142,8 +138,8 @@ TOKEN=your_actual_token_here
 driver = uc.Chrome(version_main=YOUR_VERSION)
 ```
 
-#### 3. "Not valid guild and channel" Error
-- Check that channel and guild IDs are correct
+#### 3. "Not valid server and channel" Error
+- Check that channel and server IDs are correct
 - Ensure the bot account has access to the server/channel
 - Verify Developer Mode is enabled when copying IDs
 

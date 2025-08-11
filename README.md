@@ -43,12 +43,11 @@ An automated Discord bot that monitors specific channels for PrizePicks links an
    echo "TOKEN=your_discord_alt_token_here" > .env
    ```
 
-4. **Configure channels and guilds**
+4. **Configure channels and servers**
    Edit `rules.py` with your target Discord server and channel IDs:
    ```python
    ACCEPTABLE_CHANNELS = [YOUR_CHANNEL_ID]
-   ACCEPTABLE_GUILDS = [YOUR_GUILD_ID]
-   ACCEPTABLE_ROLES = ["@&YOUR_ROLE_ID"]
+   ACCEPTABLE_SERVERS = [YOUR_SERVER_ID]
    ```
 
 ## 🎯 Usage
@@ -62,7 +61,7 @@ python runbot.py
 
 1. **Discord Monitoring**: Bot connects to Discord and monitors specified channels
 2. **Link Detection**: Scans messages for valid PrizePicks URLs
-3. **Validation**: Checks for required role mentions and valid channels
+3. **Validation**: Checks for required valid channels
 4. **Automation**: Opens Chrome browser and navigates to PrizePicks link
 5. **Bet Placement**: Automatically clicks the submit button
 6. **Feedback**: Adds reactions to Discord messages (🌭, ✅, ❌)
@@ -77,8 +76,8 @@ Discord Message → Validation → URL Extraction → Browser Automation → Bet
 
 ### Discord Settings (`rules.py`)
 - `ACCEPTABLE_CHANNELS`: List of channel IDs to monitor
-- `ACCEPTABLE_GUILDS`: List of guild/server IDs to monitor  
-- `ACCEPTABLE_ROLES`: List of role mentions required in messages
+- `ACCEPTABLE_SERVERS`: List of server IDs to monitor  
+
 
 ### Browser Settings (`runbot.py`)
 - Chrome version: 138 (configured for undetected-chromedriver)
