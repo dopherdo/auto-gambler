@@ -95,8 +95,10 @@ To find your Chrome version:
 Run a quick test to ensure everything is working:
 
 ```bash
-python runbot.py
+caffeinate -i python3 runbot.py
 ```
+
+> **💡 Sleep Prevention**: The `caffeinate -i` command prevents your computer from sleeping while the bot runs, ensuring uninterrupted operation. This is temporary and automatically reverts when you stop the script.
 
 You should see:
 ```

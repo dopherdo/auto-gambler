@@ -54,8 +54,10 @@ An automated Discord bot that monitors specific channels for PrizePicks links an
 
 ### Running the Bot
 ```bash
-python runbot.py
+caffeinate -i python3 runbot.py
 ```
+
+> **💡 Important**: Use `caffeinate -i` to prevent your computer from sleeping while the bot runs. This ensures uninterrupted operation without permanently changing your system settings. The command automatically reverts when the script stops.
 
 ### How It Works
 
@@ -136,6 +138,11 @@ Discord Message → Validation → URL Extraction → Browser Automation → Bet
    - PrizePicks may have updated their website
    - Check console output for selector attempts
    - Update selectors in `place_prizepick_slip()` function
+
+5. **Computer Sleep Issues**
+   - Always use `caffeinate -i python3 runbot.py`
+   - If script stops unexpectedly, check if computer went to sleep
+   - For 24/7 operation, consider dedicated machine or VPS
 
 ### Debug Mode
 Add debug prints to see what's happening:

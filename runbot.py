@@ -48,8 +48,8 @@ def is_active_hours():
     """
     Check if the bot should be active based on PST time.
     
-    Bot is active from 7:30 AM to 9:00 PM PST.
-    Bot is inactive from 9:00 PM to 7:30 AM PST.
+    Bot is active from 7:50 AM to 9:00 PM PST.
+    Bot is inactive from 9:00 PM to 7:50 AM PST.
     
     Returns:
         bool: True if bot should be active, False if it should sleep
@@ -63,14 +63,14 @@ def is_active_hours():
     # Convert current time to minutes since midnight for easier comparison
     current_minutes = current_hour * 60 + current_minute
     
-    # Active hours: 7:30 AM (450 minutes) to 9:00 PM (1260 minutes)
-    start_time = 7 * 60 + 30  # 7:30 AM = 450 minutes
+    # Active hours: 7:50 AM (470 minutes) to 9:00 PM (1260 minutes)
+    start_time = 7 * 60 + 50  # 7:50 AM = 470 minutes
     end_time = 21 * 60        # 9:00 PM = 1260 minutes
     
     is_active = start_time <= current_minutes < end_time
     
     if not is_active:
-        print(f"🌙 Bot is sleeping (inactive hours): {current_time.strftime('%I:%M %p PST')} - Active from 7:30 AM to 9:00 PM PST")
+        print(f"🌙 Bot is sleeping (inactive hours): {current_time.strftime('%I:%M %p PST')} - Active from 7:50 AM to 9:00 PM PST")
     
     return is_active
 
@@ -243,10 +243,16 @@ class ProSlip:
     author: str | None
 
 
+# ======= [ BOT CONFIGURATION ] =======
+
+# SLEEP MODE TOGGLE - Set to False to disable time-based restrictions
+ENABLE_SLEEP_MODE = True  # Change to False to run 24/7
 # Global storage for pending picks (currently unused but available for future features)
 pending_picks = dict()
 
 # Initialize Discord client
+# Note: discord.py-self doesn't use intents system like regular discord.py
+# API usage is reduced through early message filtering instead
 client = discord.Client()
 
 # ======= [ DISCORD CLIENT EVENTS ] =======
@@ -262,14 +268,36 @@ async def on_ready():
     pst = pytz.timezone('US/Pacific')
     current_time = datetime.now(pst)
     
+
+    # Import server configuration
+    from rules import ACCEPTABLE_SERVERS, ACCEPTABLE_CHANNELS
+    
     print("Logged in as", client.user)
     print(f"🕐 Current PST time: {current_time.strftime('%I:%M %p PST on %B %d, %Y')}")
-    print(f"⏰ Bot active hours: 7:30 AM - 9:00 PM PST")
     
-    if is_active_hours():
-        print("✅ Bot is currently ACTIVE and will process PrizePicks links")
+    # Show sleep mode status
+    if ENABLE_SLEEP_MODE:
+        print(f"⏰ Bot active hours: 7:50 AM - 9:00 PM PST (SLEEP MODE: ON)")
     else:
-        print("🌙 Bot is currently SLEEPING (outside active hours)")
+        print(f"🔄 Bot running 24/7 (SLEEP MODE: OFF)")
+    
+    print(f"🎯 Monitoring {len(ACCEPTABLE_SERVERS)} server(s) and {len(ACCEPTABLE_CHANNELS)} channel(s)")
+    
+    # Show which servers the bot is connected to
+    connected_servers = [guild for guild in client.guilds if guild.id in ACCEPTABLE_SERVERS]
+    if connected_servers:
+        print(f"📡 Connected to target servers: {', '.join([guild.name for guild in connected_servers])}")
+    else:
+        print("⚠️  Warning: Not connected to any target servers - check ACCEPTABLE_SERVERS in rules.py")
+    
+    # Show current status based on sleep mode setting
+    if ENABLE_SLEEP_MODE:
+        if is_active_hours():
+            print("✅ Bot is currently ACTIVE and will process PrizePicks links")
+        else:
+            print("🌙 Bot is currently SLEEPING (outside active hours)")
+    else:
+        print("✅ Bot is ACTIVE 24/7 and will process PrizePicks links")
 
 
 @client.event
@@ -293,11 +321,12 @@ async def on_message(message: Message):
 
     # Early check: Only process messages from our target channels (reduce API calls)
     from rules import ACCEPTABLE_CHANNELS, ACCEPTABLE_SERVERS
-    if message.channel.id not in ACCEPTABLE_CHANNELS or message.server.id not in ACCEPTABLE_SERVERS:
+    if message.channel.id not in ACCEPTABLE_CHANNELS or message.guild.id not in ACCEPTABLE_SERVERS:
         return  # Silently ignore messages from unwanted channels/servers
 
-    # Check if bot should be active based on time (7:30 AM - 9:00 PM PST)
-    if not is_active_hours():
+    # Check if bot should be active based on time (7:50 AM - 9:00 PM PST)
+    # Skip time check if ENABLE_SLEEP_MODE is False (24/7 operation)
+    if ENABLE_SLEEP_MODE and not is_active_hours():
         return  # Silently ignore messages during inactive hours
 
     # Validate message contains valid PrizePicks content

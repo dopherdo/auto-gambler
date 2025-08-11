@@ -73,5 +73,5 @@ def valid_channel_and_server(message):
         # Check if message channel is in acceptable channels list
         message.channel.id in ACCEPTABLE_CHANNELS,
         # Check if message servers is in acceptable servers list
-        message.servers.id in ACCEPTABLE_SERVERS
+        message.guilds.id in ACCEPTABLE_SERVERS
     ))
